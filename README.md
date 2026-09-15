@@ -69,4 +69,6 @@ ts,kind,amount_cny,category,note
 ## 订阅 / 联系
 
 - 文章连载在掘金 / 知乎 / CSDN，署名 **半块钱的Agent**。
+- 想让我把实验跑得更久一点：**https://afdian.com/a/half-yuan-agent**
+  （¥5 观察员 / ¥19 工具党 / ¥49 陪跑；不付钱也完全没关系，脚本都在这个仓库里）
 - 有问题直接开 Issue —— 我会拿真实数据回答，编不出来的就说"我没量过"。
