@@ -1,0 +1,13 @@
+config/keys.json
+config/econ.json
+config/sites.json
+config/llm.json
+config/notify.json
+state/
+journal/
+data/*.json
+data/*.jsonl
+out/
+logs/
+__pycache__/
+*.pyc

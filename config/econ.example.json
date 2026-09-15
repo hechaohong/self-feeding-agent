@@ -1,0 +1,12 @@
+{
+  "fx_usd_cny": 7.1,
+  "price_kwh": 0.6,
+  "gpu_extra_w": 200,
+  "host_idle_w": 120,
+  "monthly_cloud_cap_cny": 70,
+  "spend_ratio_of_income": 0.3,
+  "bootstrap_cap_cny": 30,
+  "daily_cap_cny": 5,
+  "session_cap_cny": 3,
+  "notes": "启动期月额度 bootstrap_cap_cny（无收入时先小额试错）；有收入后切 min(monthly_cloud_cap_cny, 收入×spend_ratio_of_income)。price_kwh 按当地电价填。"
+}

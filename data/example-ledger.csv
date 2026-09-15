@@ -1,0 +1,6 @@
+ts,kind,amount_cny,category,note
+2026-09-15T10:39:02,expense,0.2370,api,pi-tick(action) mimo-v2.5 in=130788 out=36536
+2026-09-15T12:23:03,expense,1.4647,session-api,pi session 增量 $0.2063 @7.1（1 个会话文件）
+2026-09-15T12:30:01,expense,0.1468,session-api,pi session 增量 $0.0207 @7.1（1 个会话文件）
+2026-09-15T12:32:15,expense,0.0593,session-api,pi session 增量 $0.0083 @7.1（1 个会话文件）
+2026-09-15T12:49:39,expense,0.3449,session-api,pi session 增量 $0.0486 @7.1（1 个会话文件）
