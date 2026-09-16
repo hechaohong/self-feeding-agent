@@ -22,7 +22,9 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import subprocess
 import sys
+import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -163,6 +165,84 @@ def breakeven_table(r: dict) -> str:
                       "> 免费池看着最香，但本项目的免费档有速率与质量限制，¥0 只在「跑得通」时才成立 —— 那部分我没数据，不算进结论。"])
 
 
+IDLE_FILE = ROOT / "state" / "gpu_idle.json"
+
+
+def saved_idle_w(measure: bool = False) -> float:
+    """空闲功耗：量一次就落盘复用（避免每次重测导致证据文件里的数字反复漂）。
+
+    坑（09-16）：nvidia-smi 的空闲读数每次跑都不一样（实测 22.7 / 23.2 / 25.6 W），
+    如果 --write 每次都重测，同一篇文章的证据文件会随每次重新生成而变。
+    """
+    if IDLE_FILE.exists() and not measure:
+        try:
+            return float(json.loads(IDLE_FILE.read_text(encoding="utf-8"))["idle_w"])
+        except Exception:
+            pass
+    w = gpu_idle_w()
+    if w:
+        IDLE_FILE.write_text(json.dumps(
+            {"idle_w": round(w, 2), "measured_at": time.strftime("%F %T"), "samples": 5,
+             "stat": "min of 5", "cmd": "nvidia-smi --query-gpu=power.draw --format=csv,noheader,nounits"},
+            ensure_ascii=False, indent=1), encoding="utf-8")
+    return w
+
+
+def gpu_idle_w(samples: int = 5) -> float:
+    """实测 GPU 空闲功耗（nvidia-smi power.draw，取最低样本 ≈ 纯空闲）。
+
+    为什么要它：`gpu_extra_w=200` 一直是**估算**。但真正决定「本地增量成本」的不是
+    推理时的总功耗，而是 `推理功耗 − 空闲功耗`——机器本来就 24h 开着的话，
+    空闲那部分你早就在付了，不该算到本地推理头上。
+    """
+    vals: list[float] = []
+    for _ in range(max(1, samples)):
+        r = subprocess.run(["nvidia-smi", "--query-gpu=power.draw", "--format=csv,noheader,nounits"],
+                           capture_output=True, text=True)
+        try:
+            vals.append(float((r.stdout or "").strip().splitlines()[0]))
+        except Exception:
+            pass
+        time.sleep(1)
+    return min(vals) if vals else 0.0
+
+
+def power_sensitivity(r: dict, idle_w: float, infer_ws=(150.0, 200.0, 250.0)) -> str:
+    """把「推理功耗」这个未实测参数做成灵敏度表 → 结论不再压在单一估算上。
+
+    两种会计口径（这才是本地 vs 云端的真分歧点）：
+      全额口径 = 这台机器是为跑推理才开的（含空闲）
+      增量口径 = 机器本来就 24h 开着，只算推理比空闲多耗的那部分
+    """
+    econ = common.cfg("econ", {})
+    price = float(common.cfg("night", {}).get("local", {}).get("price_kwh")
+                  or econ.get("price_kwh") or 0.6)
+    up_h = r["up_s"] / 3600.0
+    rows = ["## 推理功耗灵敏度（`gpu_extra_w` 从未实测，所以不给单点数）", "",
+            f"- GPU 空闲实测：**{idle_w:.2f} W**（nvidia-smi，取 5 次最低样本）→ 纯待机 ¥{idle_w/1000*price:.4f}/小时"
+            + (f"，24h 开着 ≈ ¥{idle_w/1000*price*24*30:.1f}/月" if idle_w else ""),
+            f"- 机器本身并非空闲：宿主另有 Windows VM(12G) / Elasticsearch / docker 等常驻负载 → **宿主 24h 开着**",
+            "",
+            "| 假设推理功耗 | 全额 ¥/h | 增量 ¥/h（减空闲） | 账单 ¥/M 全额 | 账单 ¥/M 增量 | 保本占空比 全额 | 保本占空比 增量 |",
+            "|---|---|---|---|---|---|"]
+    for w in infer_ws:
+        full, inc = w / 1000 * price, max(w - idle_w, 0) / 1000 * price
+        marg_full = full / (r["rate"] * 3600 / 1e6)
+        marg_inc = inc / (r["rate"] * 3600 / 1e6)
+        bill_full = up_h * full / (r["out_tok"] / 1e6)
+        bill_inc = up_h * inc / (r["out_tok"] / 1e6)
+        rows.append(f"| {w:.0f} W | {full:.4f} | {inc:.4f} | ¥{bill_full:.2f} | ¥{bill_inc:.2f} "
+                    f"| {marg_full/r['cloud_per_m']*100:.1f}% | {marg_inc/r['cloud_per_m']*100:.1f}% |")
+    lo = min(infer_ws); hi = max(infer_ws)
+    rows += ["",
+             f"> 结论对功耗假设的敏感度：推理功耗从 {lo:.0f}W 到 {hi:.0f}W，保本占空比只在 "
+             f"{min(lo,hi-idle_w)/1000*price/(r['rate']*3600/1e6)/r['cloud_per_m']*100:.1f}% – "
+             f"{hi/1000*price/(r['rate']*3600/1e6)/r['cloud_per_m']*100:.1f}% 之间移动——**乘性缩放，不改变排序**。",
+             "> 换句话说：「占空比决定本地赢不赢」这个结论不依赖那个未实测的数字；只有具体阈值依赖它。",
+             "> 真正的分歧不是技术，是**会计口径**：把空闲和已付的机器成本算进来 → 本地赢；只把本地推理当新增开支 → 大多亏。"]
+    return "\n".join(rows)
+
+
 def window_hours() -> float:
     """夜间窗口小时数（config/night.json；解析失败则 5.5）。"""
     w = (common.cfg("night", {}) or {}).get("window", {})
@@ -182,6 +262,7 @@ def main() -> int:
     ap.add_argument("--hours", type=float, default=None)
     ap.add_argument("--cloud", default="deepseek-v4-flash")
     ap.add_argument("--breakeven-table", action="store_true", help="打印各云端档位的保本占空比")
+    ap.add_argument("--idle", action="store_true", help="实测 GPU 空闲功耗 + 打印功耗灵敏度表")
     ap.add_argument("--write", default=None)
     ap.add_argument("--json", action="store_true")
     a = ap.parse_args()
@@ -197,6 +278,12 @@ def main() -> int:
     text = report(r)
     if a.breakeven_table:
         text += "\n\n" + breakeven_table(r)
+    if a.idle or a.write:
+        idle = saved_idle_w(measure=a.idle)
+        text += "\n\n" + power_sensitivity(r, idle)
+        if not a.idle:
+            text += (f"\n> 空闲功耗来自 {IDLE_FILE.relative_to(ROOT)}（量一次落盘，"
+                     f"重测用 `--idle`）—— 免得每次重新生成证据文件这个数都在漂。")
     if a.write and not a.hours:      # 顺手把「服务挂满夜间窗口」的投影也写进去（N4 的依据）
         h = window_hours()
         p = cost(logs, a.cloud, h)
