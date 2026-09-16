@@ -18,6 +18,7 @@
 | `tools/stats.py` | 阅读/互动数据回采（CSDN / 掘金 / 知乎）→ 快照 + 增量 | `python3 tools/stats.py`（附平台取数路径） |
 | `tools/hot_topics.py` | 5 个免费榜单（HN / 掘金 / 百度 / 知乎 / GitHub）→ 素材池 + 相关性打分 | `python3 tools/hot_topics.py fetch` |
 | `tools/local_cost.py` | **自己算「本地推理到底省不省钱」**：把 llama-server 日志拆成四种口径（跑分 / 账单 / 云端同工作量 / 保本占空比） | `python3 tools/local_cost.py --breakeven-table --idle` |
+| `tools/localserve.sh` | 本地模型服务（按需启停，**停机自动把电费记进账本**）：`-fit off` + q4 KV + 27B→9B 回退链；路径用 `LLAMA_BIN` / `MODEL_DIR` 覆盖 | `tools/localserve.sh list\|start\|stop\|status` |
 | `tools/privacy_check.py` | 发布前隐私体检（BLOCK / WARN 两级） | `python3 tools/privacy_check.py 文件 --exit` |
 | `tools/common.py` | 公共库：路径、配置、账本读写、预算闸门 | `import common` |
 
