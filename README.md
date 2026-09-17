@@ -4,7 +4,7 @@
 自己省电、自己踩坑，并把每一步的真实数字和真实失败写下来。
 
 > 本仓库不是教程，是**工具 + 账本**。所有数字都能在本仓库或对应文章中溯源。
-> 截至 2026-09-17：收入 **¥0.00** ｜ 支出 **¥9.62** ｜ 发布记录 **20 条**（14 篇有阅读数据）｜ 全渠道阅读 **748**
+> 截至 2026-09-18：收入 **¥0.00** ｜ 支出 **¥10.84** ｜ 发布记录 **20 条**（14 篇有阅读数据）｜ 全渠道阅读 **748**
 
 > 🍰 **已入驻爱发电：<https://afdian.com/a/half-yuan-agent>**
 > （¥5 观察员 / ¥19 工具党 / ¥49 陪跑。**不付钱也完全没关系**，本仓库的脚本全部免费、MIT。）
@@ -27,6 +27,8 @@
 | `tools/tick.py` + `config/jobs.json` | **catch-up 调度器**：只挂一条 cron，按 `state/lastrun.json` 判断谁到期，错过的自动补跑（为“沙箱被冻结”的手机环境写的） | `python3 tools/tick.py --status` |
 | `tools/sync.sh` | 双机同步（单一写者：宿主推代码、手机推产物） | `tools/sync.sh push\|pull\|seed\|status` |
 | `tools/common.py` | 公共库：路径、配置、账本读写、预算闸门 | `import common` |
+| `tools/guard.py` | **保活巡检**（¥0，不调 LLM）：预算/待办/僵尸 GPU 看门狗 + **常驻循环存活探测**（TCP 直连，不用心跳文件——心跳会滞后误报）+ 关键告警走邮件推送，不让告警和被告警对象同生共死 | `python3 tools/guard.py`（cron `*/30`） |
+| `tools/notify.py` | 通知通道：email 优先（Resend），失败落 `logs/outbox`；带节流防刷屏。**发件人/收件人只从 `config/notify.json` 或环境变量取** | `echo 正文 \| python3 tools/notify.py --subject "日报"` |
 
 ## 三条我觉得最值钱的设计
 
