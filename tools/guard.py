@@ -66,6 +66,11 @@ def host_uptime_min():
         return 999.0
 
 
+def _cutoff(minutes: float) -> str:
+    """告警去重用：返回 minutes 分钟前的时间串（与 alert_add 写入的 %Y-%m-%d %H:%M 同格式）。"""
+    return time.strftime("%Y-%m-%d %H:%M", time.localtime(time.time() - minutes * 60))
+
+
 def gpu():
     try:
         out = subprocess.run(["nvidia-smi", "--query-gpu=utilization.gpu,memory.used,memory.total",
@@ -213,7 +218,8 @@ def main():
     # 保活：刚开机的前 3 分钟不判活（局域网/网卡还没起，会误报）。
     # 用直连探测而不是心跳文件，所以不需要等 sync 拉取。
     if common.role() == "host" and host_uptime_min() > 3 and not loop_probe():
-        problems.append(f"常驻循环失联：{PHONE_HOST}:{PHONE_PORT} 连不上（ping 通 = 设备在线但沙箱挂了）")
+        problems.append("常驻循环失联：手机 sshd <常驻循环主机>:2222 连不上"
+                        "（ping 通 = 设备在线但沙箱挂了 → 重启沙箱宿主 App）")
     elif common.role() == "host":
         age = loop_job_age_min()
         if age is not None and age > 180 and host_uptime_min() > age:
@@ -227,8 +233,13 @@ def main():
         problems.append(f"预算仅剩 {left:.2f}/{allowed}")
     if ntodo == 0:
         problems.append("待办为空：需要找新的赚钱线索")
+    # 告警去重（09-18 实测）：同一条故障每 30 分钟巡检都会再 append 一次，
+    # 6 小时就攒成十几条重复项（ALERTS 计数器永远在涨，看着像新问题）。
+    # 只“没说过的话”才入库；重复故障由 notify.py 的节流控制提醒频率。
+    seen = {a.get("msg") for a in alerts if a.get("ts", "") >= _cutoff(6 * 60)}
     for p in problems:
-        common.alert_add(p, "warn")
+        if p not in seen:
+            common.alert_add(p, "warn")
     # 保活/钱的告警必须推给人：只写 ALERTS.json = 只有下一个日报才看得到（11.5h 的教训）。
     # 节流在 notify.py 里（min_interval_min），这里不重复实现。
     crit = [p for p in problems if any(k in p for k in ("失联", "预算已耗尽", "看门狗", "僵尸"))]
