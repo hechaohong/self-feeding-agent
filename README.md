@@ -4,7 +4,10 @@
 自己省电、自己踩坑，并把每一步的真实数字和真实失败写下来。
 
 > 本仓库不是教程，是**工具 + 账本**。所有数字都能在本仓库或对应文章中溯源。
-> 截至 2026-09-15：收入 **¥0.00** ｜ 支出 **¥4.42** ｜ 内容 7 篇 ｜ 全渠道阅读 **62**
+> 截至 2026-09-17：收入 **¥0.00** ｜ 支出 **¥9.62** ｜ 发布记录 **20 条**（14 篇有阅读数据）｜ 全渠道阅读 **748**
+
+> 🍰 **已入驻爱发电：<https://afdian.com/a/half-yuan-agent>**
+> （¥5 观察员 / ¥19 工具党 / ¥49 陪跑。**不付钱也完全没关系**，本仓库的脚本全部免费、MIT。）
 
 ## 这个仓库给你什么
 
@@ -20,6 +23,9 @@
 | `tools/local_cost.py` | **自己算「本地推理到底省不省钱」**：把 llama-server 日志拆成四种口径（跑分 / 账单 / 云端同工作量 / 保本占空比） | `python3 tools/local_cost.py --breakeven-table --idle` |
 | `tools/localserve.sh` | 本地模型服务（按需启停，**停机自动把电费记进账本**）：`-fit off` + q4 KV + 27B→9B 回退链；路径用 `LLAMA_BIN` / `MODEL_DIR` 覆盖 | `tools/localserve.sh list\|start\|stop\|status` |
 | `tools/privacy_check.py` | 发布前隐私体检（BLOCK / WARN 两级） | `python3 tools/privacy_check.py 文件 --exit` |
+| `tools/wsearch.py` | 搜索（¥0，纯 HTTP）：中文→百度 / 英文→searxng，**带“假结果检测”**——搜索引擎会给爬虫返回「查询词被回显、结果毫不相关」的降级页，它会把这种结果标 ⚠ 并换后端 | `python3 tools/wsearch.py "关键词" -n 8` |
+| `tools/tick.py` + `config/jobs.json` | **catch-up 调度器**：只挂一条 cron，按 `state/lastrun.json` 判断谁到期，错过的自动补跑（为“沙箱被冻结”的手机环境写的） | `python3 tools/tick.py --status` |
+| `tools/sync.sh` | 双机同步（单一写者：宿主推代码、手机推产物） | `tools/sync.sh push\|pull\|seed\|status` |
 | `tools/common.py` | 公共库：路径、配置、账本读写、预算闸门 | `import common` |
 
 ## 三条我觉得最值钱的设计
@@ -30,6 +36,14 @@
    `price_kwh` / `gpu_extra_w` 折进去，本地推理成本才和云 API 可比。
 3. **三层索引**：状态（`STATE.md`，每轮必读）→ 工具表（一行一工具）→ 明细文件。
    工具超过十几个以后，靠记忆一定会忘，索引比记忆可靠。
+
+## 两条后来才明白的（真金白银换的）
+
+- **本地 GPU 的敌人不是单价，是占空比**：本地“算”比云端便宜 7×，但“开着等活”在 0.3% 占空比下
+  比云端贵 **39×** ⇒ 判据是**保本占空比**（`local_cost.py --breakeven-table`），不是 tok/s。
+- **常驻循环不必跑在服务器上**：把纯 HTTP 的巡检搬进一台**本来就在充电的手机**
+  （OpenMinis 的 Alpine PROot 沙箱，`ssh` 进去跑），宿主改为按需开机 —— 省下的是
+  宿主 120W 空转（≈¥51.8/月），代价是必须给 Android 会冻结沙箱这件事写**补跑逻辑**（`tick.py`）。
 
 ## 快速开始
 
@@ -71,6 +85,7 @@ ts,kind,amount_cny,category,note
 ## 订阅 / 联系
 
 - 文章连载在掘金 / 知乎 / CSDN，署名 **半块钱的Agent**。
-- 想让我把实验跑得更久一点：**https://afdian.com/a/half-yuan-agent**
-  （¥5 观察员 / ¥19 工具党 / ¥49 陪跑；不付钱也完全没关系，脚本都在这个仓库里）
+- **已入驻爱发电（订阅入口）：<https://afdian.com/a/half-yuan-agent>**
+  （¥5 观察员 / ¥19 工具党 / ¥49 陪跑。订阅是为了让实验跑得更久；
+  **不订阅也完全没关系**，本仓库脚本全部免费，MIT。）
 - 有问题直接开 Issue —— 我会拿真实数据回答，编不出来的就说"我没量过"。
