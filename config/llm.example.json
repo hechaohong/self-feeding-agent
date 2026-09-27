@@ -1,0 +1,187 @@
+{
+ "notes": "分层档位示例。keys 段不在这（凭据放 config/keys.json，不进公开仓库）；本文件里的 key 字段只是**凭据的键名**，不是凭据本身。no_thinking_field=true 表示该端点拒收 body 里的 thinking 字段（实测 400）。penalty 段是 tools/model_score.py 的扣分参数：decay=跨天衰减、window_days=重置周期。",
+ "fx_key": "fx_usd_cny",
+ "tiers": {
+  "free": [
+   {
+    "base": "https://opencode.ai/zen/v1",
+    "model": "space-bunny-free",
+    "in": 0,
+    "out": 0,
+    "key": "zen",
+    "q": 3,
+    "no_thinking_field": true,
+    "note": "09-27 加进路由。付费对偶=editor/deepseek-v4.1-flash($0.15/$0.6)。此前只在 free_pool.py 的探测名单里，config/llm.json 从没配过 → `--tier free` 根本选不到它。排 free 档第一位：llm.py 按**列表顺序**轮换、**不读 q 字段**（只有 chat.py --min-q 读），所以位置就是路由优先级。q=3 给 chat.py 用。 **no_thinking_field**：实测 zen 端点拒收 body 里的 thinking 字段，带了就 400 invalid_request_error（09-27 2/2 确定性复现，带/不带交替对比）。所以 llm.py 遇这个标记会丢掉 thinking 而不是报错。 ⚠️ **限时免费**（用户 09-27 告知：它是 opencode-go 侧的限时免费档，本 session 就跑在它上面）⇒ 可能无预警消失。端点实测：zen/v1+zen key 200、zen/go/v1+go key 200，两个都通；而付费档 deepseek-v4.1-flash 在 zen/v1 返回 **402 Payment Required**、只在 zen/go/v1 可用 ⇒ 402 就是免费/付费网关的分界线。另外 common.keys() 里 `go` 与 `zen` 解析出**同一个 key**（同 67 字符），凭据只有一份。"
+   },
+   {
+    "base": "https://api.siliconflow.cn/v1",
+    "model": "Qwen/Qwen2.5-7B-Instruct",
+    "in": 0,
+    "out": 0,
+    "key": "sf",
+    "q": 1
+   },
+   {
+    "base": "https://api.siliconflow.cn/v1",
+    "model": "THUDM/GLM-4-9B-0414",
+    "in": 0,
+    "out": 0,
+    "key": "sf",
+    "q": 1
+   },
+   {
+    "base": "https://api.siliconflow.cn/v1",
+    "model": "Qwen/Qwen3-8B",
+    "in": 0,
+    "out": 0,
+    "key": "sf",
+    "q": 1
+   },
+   {
+    "base": "https://api.siliconflow.cn/v1",
+    "model": "THUDM/GLM-Z1-9B-0414",
+    "in": 0,
+    "out": 0,
+    "key": "sf",
+    "q": 1
+   },
+   {
+    "base": "https://api.siliconflow.cn/v1",
+    "model": "deepseek-ai/DeepSeek-R1-0528-Qwen3-8B",
+    "in": 0,
+    "out": 0,
+    "key": "sf",
+    "q": 1
+   },
+   {
+    "base": "https://api.siliconflow.cn/v1",
+    "model": "Qwen/Qwen3-VL-8B-Instruct",
+    "in": 0,
+    "out": 0,
+    "key": "sf",
+    "q": 1
+   },
+   {
+    "base": "https://openrouter.ai/api/v1",
+    "model": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "in": 0,
+    "out": 0,
+    "key": "openrouter",
+    "q": 2
+   },
+   {
+    "base": "https://openrouter.ai/api/v1",
+    "model": "nvidia/nemotron-3-super-120b-a12b:free",
+    "in": 0,
+    "out": 0,
+    "key": "openrouter",
+    "q": 2
+   },
+   {
+    "base": "https://openrouter.ai/api/v1",
+    "model": "nex-agi/nex-n2.5-pro:free",
+    "in": 0,
+    "out": 0,
+    "key": "openrouter",
+    "q": 2
+   },
+   {
+    "base": "https://openrouter.ai/api/v1",
+    "model": "poolside/laguna-s-2.1:free",
+    "in": 0,
+    "out": 0,
+    "key": "openrouter",
+    "q": 2
+   }
+  ],
+  "cheap": [
+   {
+    "base": "https://opencode.ai/zen/go/v1",
+    "model": "mimo-v2.5",
+    "in": 0.14,
+    "out": 0.28,
+    "cache": 0.0028,
+    "key": "go",
+    "q": 2
+   },
+   {
+    "base": "https://opencode.ai/zen/go/v1",
+    "model": "qwen3.8-flash",
+    "in": 0.15,
+    "out": 0.47,
+    "cache": 0.016,
+    "key": "go",
+    "q": 2
+   },
+   {
+    "base": "https://opencode.ai/zen/go/v1",
+    "model": "deepseek-v4-flash",
+    "in": 0.15,
+    "out": 0.6,
+    "cache": 0.003,
+    "key": "go",
+    "q": 2
+   }
+  ],
+  "editor": [
+   {
+    "base": "https://opencode.ai/zen/go/v1",
+    "model": "deepseek-v4.1-flash",
+    "in": 0.15,
+    "out": 0.6,
+    "key": "go",
+    "note": "主 Agent 同款模型（contextWindow 100000）。09-16 实测：**只在付费端点 /zen/go/v1** 可用，写 /zen/v1（免费池）会 401；data/model_probe.json 09-15 已记 ok:true(2.2s)。价格未核实，暂按 deepseek-v4-flash 同价计（$0.15/$0.6）",
+    "q": 3
+   }
+  ],
+  "hard": [
+   {
+    "base": "https://opencode.ai/zen/go/v1",
+    "model": "deepseek-v4-pro",
+    "in": 0.66,
+    "out": 1.98,
+    "cache": 0.022,
+    "key": "go",
+    "q": 3
+   },
+   {
+    "base": "https://opencode.ai/zen/go/v1",
+    "model": "qwen3.8-max",
+    "in": 2,
+    "out": 6,
+    "cache": 0.25,
+    "key": "go",
+    "q": 3
+   }
+  ],
+  "local": [
+   {
+    "base": "http://127.0.0.1:8080/v1",
+    "model": "local",
+    "in": 0,
+    "out": 0,
+    "key": "none",
+    "extra": {
+     "chat_template_kwargs": {
+      "enable_thinking": false
+     }
+    },
+    "note": "本地 llama-server（tools/localserve.sh start）。电费单独走 ledger.py power，不走 api 记账。坑：Qwen 思考模型不关 thinking 时 content 会是空字符串（实测 600 token 全被 reasoning 吃掉）",
+    "q": 2
+   }
+  ],
+  "persona": [
+   {
+    "base": "https://ark.cn-beijing.volces.com/api/v3",
+    "model": "doubao-seed-character-260628",
+    "in": 0.8,
+    "out": 2.0,
+    "cache": 0.16,
+    "key": "ark",
+    "currency": "cny",
+    "note": "角色扮演/人设稳定，支持 character_manifest；¥0.8/M 入、¥2/M 出、缓存 ¥0.16/M",
+    "q": 2
+   }
+  ]
+ }
+}
