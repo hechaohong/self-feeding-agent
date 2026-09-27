@@ -1,0 +1,92 @@
+{
+  "note": "宿主/手机共用 job 表（tools/tick.py 读）。every_min=间隔；catch_up=true 表示迟到也补跑；max_late_min 只在 catch_up=false 时生效。role=host/phone 的 job 只在那一侧跑（09-18 加）。只放『纯 HTTP + 云端 LLM，不需要浏览器/GPU/adb/宿主本地文件』的 job。",
+  "jobs": [
+    {
+      "name": "collect",
+      "cmd": "python3 tools/collect.py",
+      "every_min": 60,
+      "timeout_s": 300,
+      "enabled": true,
+      "catch_up": true,
+      "note": "信息采集(悬赏/线索)，纯 HTTP"
+    },
+    {
+      "name": "hot_topics",
+      "cmd": "python3 tools/hot_topics.py fetch",
+      "every_min": 120,
+      "timeout_s": 300,
+      "enabled": true,
+      "catch_up": true,
+      "note": "5 源热榜 ¥0"
+    },
+    {
+      "name": "scan_bounties",
+      "cmd": "python3 tools/scan_bounties.py",
+      "every_min": 360,
+      "timeout_s": 300,
+      "enabled": true,
+      "catch_up": true,
+      "note": "GitHub 悬赏扫描 API"
+    },
+    {
+      "name": "report",
+      "cmd": "python3 tools/report_phone.py",
+      "every_min": 1440,
+      "timeout_s": 300,
+      "enabled": true,
+      "catch_up": true,
+      "note": "每日日报 email（只归宿主：两份 tick 都在跑，日报只发一封）",
+      "role": "host"
+    },
+    {
+      "name": "draft",
+      "cmd": "python3 tools/write_article.py --topic PENDING",
+      "every_min": 1440,
+      "timeout_s": 1800,
+      "enabled": false,
+      "catch_up": false,
+      "max_late_min": 0,
+      "note": "选题写稿：选题需人/pi 决策，暂留宿主，手机只备用"
+    },
+    {
+      "name": "free_drive",
+      "cmd": "python3 tools/free_drive.py probe",
+      "every_min": 1440,
+      "timeout_s": 300,
+      "enabled": true,
+      "catch_up": true,
+      "role": "host",
+      "note": "R26 每日免费驱动：探免费通道 + 记录（¥0）"
+    },
+    {
+      "name": "article_lint",
+      "cmd": "python3 tools/article_lint.py --all",
+      "every_min": 1440,
+      "timeout_s": 600,
+      "enabled": true,
+      "catch_up": true,
+      "role": "host",
+      "note": "稿件复检（内容优先：双闸门+署名+配图+数字重复；字数只提醒不拦）¥0"
+    },
+    {
+      "name": "article_polish",
+      "cmd": "python3 tools/article_polish.py --pending --apply --max-calls 1",
+      "every_min": 1440,
+      "timeout_s": 1200,
+      "enabled": true,
+      "catch_up": true,
+      "role": "host",
+      "note": "稿件优化（内容优先：去重/结构/可复制性；禁新增数字、只改未发布稿、验收不过自动回滚）改法C：tier 默认 free，付费兜底受 R2 clamp"
+    },
+    {
+      "name": "route_metrics",
+      "cmd": "python3 tools/route_metrics.py",
+      "every_min": 1440,
+      "timeout_s": 300,
+      "enabled": true,
+      "catch_up": true,
+      "role": "host",
+      "note": "改法C判据：路由分布+产出条数+闸门率（免费期替代 session_cost 增量，R24 挂调度+留痕）¥0"
+    }
+  ]
+}
